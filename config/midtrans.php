@@ -1,0 +1,10 @@
+<?php
+// config/midtrans.php
+
+return [
+    'server_key'    => env('MIDTRANS_SERVER_KEY', ''),
+    'client_key'    => env('MIDTRANS_CLIENT_KEY', ''),
+    'is_production' => env('MIDTRANS_IS_PRODUCTION', false),
+    'is_sanitized'  => true,  // Aktifkan sanitasi input
+    'is_3ds'        => true,  // Aktifkan 3D Secure
+];
