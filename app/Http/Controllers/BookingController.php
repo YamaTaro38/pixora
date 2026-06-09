@@ -42,7 +42,7 @@ class BookingController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        $existingBooking = Booking::where('booking_date', $request->date)
+        $existingBooking = Booking::query()->where('booking_date', $request->date)
             ->where('time_slot', $request->time_slot)
             ->where(function ($q) {
                 $q->where('payment_status', 'lunas')
@@ -80,13 +80,13 @@ class BookingController extends Controller
             return redirect()->back()->withErrors($validator)->withInput();
         }
 
-        $package = Package::find($request->package_id);
+        $package = Package::query()->find($request->package_id);
         if (!$package) {
             return redirect()->back()->with('error', 'Paket tidak ditemukan')->withInput();
         }
 
         // CEK DOUBLE BOOKING - Cek booking yang sudah confirmed (lunas/dp_paid)
-        $existingConfirmedBooking = Booking::where('booking_date', $request->booking_date)
+        $existingConfirmedBooking = Booking::query()->where('booking_date', $request->booking_date)
             ->where('time_slot', $request->time_slot)
             ->where(function ($q) {
                 $q->where('payment_status', 'lunas')
@@ -102,7 +102,7 @@ class BookingController extends Controller
         }
 
         // CEK BOOKING PENDING yang belum expired
-        $existingPendingBooking = Booking::where('booking_date', $request->booking_date)
+        $existingPendingBooking = Booking::query()->where('booking_date', $request->booking_date)
             ->where('time_slot', $request->time_slot)
             ->where('payment_status', 'pending')
             ->where('expires_at', '>', now())
@@ -173,7 +173,7 @@ class BookingController extends Controller
     {
         Log::info('Payment page accessed', ['token' => $token]);
 
-        $booking = Booking::where('public_token', $token)->first();
+        $booking = Booking::query()->where('public_token', $token)->first();
 
         if (!$booking) {
             abort(404, 'Booking tidak ditemukan');
@@ -216,7 +216,7 @@ class BookingController extends Controller
      */
     public function show($token)
     {
-        $booking = Booking::where('public_token', $token)->firstOrFail();
+        $booking = Booking::query()->where('public_token', $token)->firstOrFail();
         return view('booking-show', compact('booking'));
     }
 
@@ -225,7 +225,7 @@ class BookingController extends Controller
      */
     public function checkPaymentStatus($token)
     {
-        $booking = Booking::where('public_token', $token)->firstOrFail();
+        $booking = Booking::query()->where('public_token', $token)->firstOrFail();
 
         $statusChanged = false;
 
@@ -296,7 +296,7 @@ class BookingController extends Controller
             $paymentType = $request->payment_type;
             $transactionId = $request->transaction_id;
             
-            $booking = Booking::where('midtrans_order_id', $orderId)->first();
+            $booking = Booking::query()->where('midtrans_order_id', $orderId)->first();
             
             if (!$booking) {
                 Log::warning('Booking not found for order_id: ' . $orderId);
@@ -341,7 +341,7 @@ class BookingController extends Controller
 
     public function invoice($token)
     {
-        $booking = Booking::where('public_token', $token)->firstOrFail();
+        $booking = Booking::query()->where('public_token', $token)->firstOrFail();
         
         // Pastikan booking sudah lunas
         if (!in_array($booking->payment_status, ['lunas', 'dp_paid'])) {
@@ -357,7 +357,7 @@ class BookingController extends Controller
      */
     public function updatePaymentMethod(Request $request, $token)
     {
-        $booking = Booking::where('public_token', $token)->firstOrFail();
+        $booking = Booking::query()->where('public_token', $token)->firstOrFail();
         $booking->payment_method = $request->payment_method;
         $booking->save();
 
@@ -369,7 +369,7 @@ class BookingController extends Controller
      */
     public function payCod($token)
     {
-        $booking = Booking::where('public_token', $token)->firstOrFail();
+        $booking = Booking::query()->where('public_token', $token)->firstOrFail();
         
         if ($booking->payment_status === 'pending') {
             // Kita set confirmed status booking, tapi payment tetap pending/cod
@@ -448,7 +448,7 @@ class BookingController extends Controller
      */
     public function downloadInvoice($token)
     {
-        $booking = Booking::where('public_token', $token)->firstOrFail();
+        $booking = Booking::query()->where('public_token', $token)->firstOrFail();
         
         // Pastikan booking sudah lunas atau DP
         if (!in_array($booking->payment_status, ['lunas', 'dp_paid'])) {

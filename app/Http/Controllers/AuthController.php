@@ -250,7 +250,14 @@ class AuthController extends Controller
         ]);
     }
 
-    // Change password (API only)
+    /**
+     * Change password (API + Mobile)
+     *
+     * Mendukung dua skenario:
+     * 1. User biasa (email+password login): wajib isi current_password
+     * 2. User Google only (tidak punya password): current_password tidak wajib,
+     *    bisa langsung set password baru.
+     */
     public function changePassword(Request $request)
     {
         $user = $request->user();
@@ -259,10 +266,19 @@ class AuthController extends Controller
             return response()->json(['message' => 'Unauthenticated'], 401);
         }
 
-        $validator = Validator::make($request->all(), [
-            'current_password' => 'required',
+        // Cek apakah user sudah punya password
+        $hasPassword = !empty($user->password);
+
+        $rules = [
             'password' => 'required|min:6|confirmed',
-        ]);
+        ];
+
+        // Hanya minta current_password jika user sudah punya password
+        if ($hasPassword) {
+            $rules['current_password'] = 'required';
+        }
+
+        $validator = Validator::make($request->all(), $rules);
 
         if ($validator->fails()) {
             return response()->json([
@@ -271,10 +287,13 @@ class AuthController extends Controller
             ], 422);
         }
 
-        if (!Hash::check($request->current_password, $user->password)) {
-            return response()->json([
-                'message' => 'Password saat ini salah',
-            ], 422);
+        // Jika user sudah punya password, verifikasi password lama
+        if ($hasPassword) {
+            if (!Hash::check($request->current_password, $user->password)) {
+                return response()->json([
+                    'message' => 'Password saat ini salah',
+                ], 422);
+            }
         }
 
         $user->update([
